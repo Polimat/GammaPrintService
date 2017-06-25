@@ -59,6 +59,9 @@
     <Content Include="Dlls\Advantech.Common.dll" />
     <Content Include="Dlls\Advantech.Graph.dll" />
     <Content Include="Dlls\Advantech.Protocol.dll" />
+    <Content Include="settings.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

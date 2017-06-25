@@ -77,7 +77,7 @@ namespace GammaPrintService.Common
                 #endregion Get Connected Printer Name
 
                 // Open the PDF file.
-                FileStream fs = new FileStream(pdfFileName, FileMode.Open);
+                FileStream fs = new FileStream(pdfFileName, FileMode.Open, FileAccess.Read);
                 // Create a BinaryReader on the file.
                 BinaryReader br = new BinaryReader(fs);
                 Byte[] bytes = new Byte[fs.Length];
