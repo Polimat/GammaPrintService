@@ -5,33 +5,16 @@ namespace GammaPrintService
 	[Serializable]
 	public class Settings
 	{
-		private string printerName = "Zebra";
-		private string pdfPath = "c:\\labels\\label.pdf";
-		private string adamIpAddress;
-		private uint portPrintSignal = 1;
+		public string PrinterName { get; set; } = "Zebra";
 
-		public string PrinterName
-		{
-			get { return printerName; }
-			set { printerName = value; }
-		}
+		public string PdfPath { get; set; } = "c:\\labels\\label.pdf";
 
-		public string PdfPath
-		{
-			get { return pdfPath; }
-			set { pdfPath = value; }
-		}
+		public string AdamIpAddress { get; set; } = "192.168.0.1";
 
-		public string AdamIpAddress
-		{
-			get { return adamIpAddress; }
-			set { adamIpAddress = value; }
-		}
+		public uint InPortPrintSignal { get; set; } = 1;
 
-		public uint PortPrintSignal
-		{
-			get { return portPrintSignal; }
-			set { portPrintSignal = value; }
-		}
+		public uint PortApplicatorReady { get; set; } = 2;
+
+		public uint OutPortPrintSignal { get; set; } = 1;
 	}
 }

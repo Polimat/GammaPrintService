@@ -1,157 +1,160 @@
 ﻿using System;
-using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
-using System.Threading.Tasks;
 using Advantech.Adam;
 using GammaService.Common;
 
 namespace GammaPrintService
 {
-    public class ModbusDevice
-    {
-        public ModbusDevice(DeviceType deviceType, string ipAddress, int placeId, string printerName, int signalChannelNumber, int? confirmChannelNumber, int timerTickTime)
-        {
-            IpAddress = ipAddress;
-            DeviceType = deviceType;
-            PrinterName = printerName;
-            PlaceId = placeId;
-            SignalChannelNumber = signalChannelNumber;
-            ConfirmChannelNumber = confirmChannelNumber;
-            InitializeDevice(deviceType, ipAddress);
-            MainTimer = new Timer(ReadCoil, null, 0, timerTickTime);
-        }
+	public class ModbusDevice
+	{
+		/// <summary>
+		/// </summary>
+		/// <param name="deviceType">тип адама</param>
+		/// <param name="ipAddress">ip-адрес</param>
+		/// <param name="timerTickTime">Период опроса в мс</param>
+		public ModbusDevice(DeviceType deviceType, string ipAddress, int timerTickTime = 100)
+		{
+			IpAddress = ipAddress;
+			DeviceType = deviceType;
+			InitializeDevice(deviceType, ipAddress);
+			MainTimer = new Timer(ReadCoil, null, 0, timerTickTime);
+		}
 
-        private string IpAddress { get; set; }
-        private DeviceType DeviceType { get; set; }
+		private string IpAddress { get; }
+		private DeviceType DeviceType { get; }
 
-        public bool IsConnected { get; private set; }
+		public bool IsConnected { get; private set; }
 
-        public string PrinterName { get; set; }
+		private AdamSocket AdamModbus { get; set; }
 
-        private int PlaceId { get; set; }
+		/// <summary>
+		/// Количество входов устройства
+		/// </summary>
+		private int m_iDiTotal;
 
-        private AdamSocket AdamModbus { get; set; }
+		/// <summary>
+		/// Количество выходов устройства
+		/// </summary>
+		private int m_iDoTotal;
 
-        private int m_iDiTotal;
-        private int m_iDoTotal;
+		/// <summary>
+		///     Таймер опроса
+		/// </summary>
+		private Timer MainTimer { get; }
 
-        private int SignalChannelNumber { get; set; }
-        private int? ConfirmChannelNumber { get; set; }
+		/// <summary>
+		/// Таймер для восстановления связи после её потери
+		/// </summary>
+		private Timer RestoreConnectTimer { get; set; }
 
-        private Timer MainTimer { get; }
-        private Timer RestoreConnectTimer { get; set; }
+		/// <summary>
+		/// Процедура восстановления связи
+		/// </summary>
+		/// <param name="obj"></param>
+		private void RestoreConnect(object obj)
+		{
+			if (!AdamModbus.Connected)
+			{
+				ReinitializeDevice();
+				if (!AdamModbus.Connected) return;
+				IsConnected = true;
+				Console.WriteLine(DateTime.Now + ": Связь с " + IpAddress + " восстановлена");
+				RestoreConnectTimer?.Dispose();
+				RestoreConnectTimer = null;
+			}
+			else
+			{
+				RestoreConnectTimer?.Dispose();
+				RestoreConnectTimer = null;
+			}
+		}
 
-        private void RestoreConnect(object obj)
-        {
-            if (!AdamModbus.Connected)
-            {
-                ReinitializeDevice();
-                if (!AdamModbus.Connected) return;
-                IsConnected = true;
-                Console.WriteLine(DateTime.Now + ": Связь с " + PrinterName + " восстановлена");
-                RestoreConnectTimer?.Dispose();
-                RestoreConnectTimer = null;
-            }
-            else
-            {
-                RestoreConnectTimer?.Dispose();
-                RestoreConnectTimer = null;
-            }
-        }
+		/// <summary>
+		/// Опрос адама
+		/// </summary>
+		/// <param name="obj"></param>
+		private void ReadCoil(object obj)
+		{
+			if (!AdamModbus.Connected)
+			{
+				IsConnected = false;
+				if (RestoreConnectTimer != null) return;
+				Console.WriteLine(DateTime.Now + " :Пропала связь с " + IpAddress);
+				RestoreConnectTimer = new Timer(RestoreConnect, null, 0, 1000);
+				return;
+			}
+			int iDIStart = 1; //, iDoStart = 17;
+			bool[] bDIData; //, bDoData;
+			if (!AdamModbus.Modbus().ReadCoilStatus(iDIStart, m_iDiTotal, out bDIData))
+			{
+				return;
+			}
+			if (bDIData == null)
+			{
+				return;
+			}
+			OnDIDataReceived?.Invoke(bDIData);
+			/*
+			var iChTotal = m_iDiTotal + m_iDoTotal;
+			var bData = new bool[iChTotal];
+			if (bDiData == null || bDoData == null) return;
+			Array.Copy(bDiData, 0, bData, 0, m_iDiTotal);
+			Array.Copy(bDoData, 0, bData, m_iDiTotal, m_iDoTotal);
+			*/
+		}
 
-        private void ReadCoil(object obj)
-        {
-            if (!AdamModbus.Connected)
-            {
-                IsConnected = false;
-                if (RestoreConnectTimer != null) return;
-                Console.WriteLine(DateTime.Now + " :Пропала связь с " + PrinterName);
-                RestoreConnectTimer = new Timer(RestoreConnect, null, 0, 1000);
-                return;
-            }
-            int iDiStart = 1, iDoStart = 17;
-            int iChTotal;
-            bool[] bDiData, bDoData, bData;
-            //            if (!AdamModbus.Modbus().ReadCoilStatus(iDiStart, m_iDiTotal, out bDiData) ||
-            //                !AdamModbus.Modbus().ReadCoilStatus(iDoStart, m_iDoTotal, out bDoData)) return;
-            if (!AdamModbus.Modbus().ReadCoilStatus(iDiStart, m_iDiTotal, out bDiData) ||
-            !AdamModbus.Modbus().ReadCoilStatus(iDoStart, m_iDoTotal, out bDoData)) return;
-            iChTotal = m_iDiTotal + m_iDoTotal;
-            bData = new bool[iChTotal];
-            if (bDiData == null || bDoData == null) return;
-            Array.Copy(bDiData, 0, bData, 0, m_iDiTotal);
-            Array.Copy(bDoData, 0, bData, m_iDiTotal, m_iDoTotal);
-            InStatus = bData[SignalChannelNumber-1];
-        }
+		private void InitializeDevice(DeviceType deviceType, string ipAddress)
+		{
+			//AdamModbus?.Disconnect();
+			AdamModbus = new AdamSocket();
+			AdamModbus.SetTimeout(1000, 1000, 1000); // set timeout for TCP
+			if (AdamModbus.Connect(ipAddress, ProtocolType.Tcp, 502))
+			{
+				if (RestoreConnectTimer == null)
+					Console.WriteLine(DateTime.Now + "Инициализация прошла успешно: " + IpAddress);
+				IsConnected = true;
+			}
+			else
+			{
+				if (RestoreConnectTimer == null)
+					Console.WriteLine(DateTime.Now + "Не удалось инициализировать: " + IpAddress);
+				IsConnected = false;
+			}
+			switch (deviceType)
+			{
+				case DeviceType.ADAM6060:
+					m_iDiTotal = 6;
+					m_iDoTotal = 6;
+					break;
+			}
+		}
 
-        private void InitializeDevice(DeviceType deviceType, string ipAddress)
-        {
-            //AdamModbus?.Disconnect();
-            AdamModbus = new AdamSocket();
-            AdamModbus.SetTimeout(1000, 1000, 1000); // set timeout for TCP
-            if (AdamModbus.Connect(ipAddress, ProtocolType.Tcp, 502))
-            {
-                if (RestoreConnectTimer == null)
-                    Console.WriteLine(DateTime.Now + "Инициализация прошла успешно: " + PrinterName);
-                IsConnected = true;
-            }
-            else
-            {
-                if (RestoreConnectTimer == null)
-                    Console.WriteLine(DateTime.Now + "Не удалось инициализировать: " + PrinterName);
-                IsConnected = false;
-            }
-            switch (deviceType)
-            {
-                case DeviceType.ADAM6060:
-                    m_iDiTotal = 6;
-                    m_iDoTotal = 6;
-                    break;
-            }
-        }
+		private void ReinitializeDevice()
+		{
+			InitializeDevice(DeviceType, IpAddress);
+		}
 
-        public void ReinitializeDevice()
-        {
-            InitializeDevice(DeviceType, IpAddress);
-        }
+		#region Events
 
-        private ConcurrentQueue<Guid> FaultIds { get; } = new ConcurrentQueue<Guid>();
+		public event Action<bool[]> OnDIDataReceived;
 
-        private bool _inStatus = true;
+		#endregion
 
-        private bool InStatus
-        {
-            get { return _inStatus; }
-            set
-            {
-                if (_inStatus == value) return;
-                _inStatus = value;
-                if (InStatus) return;
-                var docId = Db.CreateNewPallet(PlaceId);
-                if (docId == null) return;
-                if (ReportManager.PrintReport("Амбалаж", PrinterName, "Pallet", docId, 2)) return;
-                FaultIds.Enqueue((Guid)docId);
-                if (!FaultPrintTaskIsRunning)
-                    Task.Factory.StartNew(PrintFromQueue);
-            }
-        }
+		#region Public methods
 
-        private bool FaultPrintTaskIsRunning { get; set; }
+		public void SendSignal(Dictionary<int, bool> outData)
+		{
+			var iStart = 17 - m_iDiTotal;
+			foreach (var signal in outData)
+			{
+				AdamModbus.Modbus().ForceSingleCoil(iStart + signal.Key, signal.Value);
+				Thread.Sleep(200);
+				AdamModbus.Modbus().ForceSingleCoil(iStart + signal.Key, !signal.Value);
+			}
+		}
 
-        private void PrintFromQueue()
-        {
-            FaultPrintTaskIsRunning = true;
-            while (FaultIds.Count > 0)
-            {
-                Guid id;
-                if (!FaultIds.TryDequeue(out id)) continue;
-                if (!ReportManager.PrintReport("Амбалаж", PrinterName, "Pallet", id, 2))
-                {
-                    FaultIds.Enqueue(id);
-                }
-            }
-            FaultPrintTaskIsRunning = false;
-        }
-    }
+		#endregion	
+	}
 }

@@ -32,8 +32,13 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Advantech.Adam, Version=8.2.12.0, Culture=neutral, PublicKeyToken=c24039c75946be9c, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>dlls\Advantech.Adam.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -41,8 +46,19 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Common\DeviceType.cs" />
+    <Compile Include="Common\RawPrintHelper.cs" />
+    <Compile Include="ModbusDevice.cs" />
+    <Compile Include="PrintService.cs" />
+    <Compile Include="Settings.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Dlls\Advantech.Adam.dll" />
+    <Content Include="Dlls\Advantech.Common.dll" />
+    <Content Include="Dlls\Advantech.Graph.dll" />
+    <Content Include="Dlls\Advantech.Protocol.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

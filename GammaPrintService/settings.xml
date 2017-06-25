@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<Settings xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <PrinterName>ASUTP</PrinterName>
+  <PdfPath>d:\cprojects\Амбалаж.pdf</PdfPath>
+  <AdamIpAddress>127.0.0.1</AdamIpAddress>
+  <InPortPrintSignal>1</InPortPrintSignal>
+  <PortApplicatorReady>2</PortApplicatorReady>
+  <OutPortPrintSignal>1</OutPortPrintSignal>
+</Settings>
