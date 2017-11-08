@@ -11,6 +11,7 @@
     <AssemblyName>GammaPrintService</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -36,6 +37,9 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>dlls\Advantech.Adam.dll</HintPath>
     </Reference>
+    <Reference Include="Ghostscript.NET">
+      <HintPath>..\..\..\CProjectsEducation\Ghostscript.NET.v.1.2.1.binaries\Ghostscript.NET.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
@@ -47,6 +51,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Common\DeviceType.cs" />
+    <Compile Include="Common\PdfPrint.cs" />
+    <Compile Include="Common\PrintImage.cs" />
     <Compile Include="Common\RawPrintHelper.cs" />
     <Compile Include="ModbusDevice.cs" />
     <Compile Include="PrintService.cs" />
@@ -61,7 +67,11 @@
     <Content Include="Dlls\Advantech.Protocol.dll" />
     <Content Include="settings.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <SubType>Designer</SubType>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

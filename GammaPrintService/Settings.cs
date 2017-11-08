@@ -16,5 +16,11 @@ namespace GammaPrintService
 		public uint PortApplicatorReady { get; set; } = 2;
 
 		public uint OutPortPrintSignal { get; set; } = 1;
-	}
+
+        public uint ModbusDeviceTickTimeInMs { get; set; } = 100;
+
+        public uint SendSignalPauseInMs { get; set; } = 200;
+
+        public uint LengthPauseAfterPrintLabelInMs { get; set; } = 2000;
+    }
 }

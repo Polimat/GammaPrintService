@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
 using Advantech.Adam;
-using GammaService.Common;
+using GammaPrintService.Common;
 
 namespace GammaPrintService
 {
@@ -14,7 +14,7 @@ namespace GammaPrintService
 		/// <param name="deviceType">тип адама</param>
 		/// <param name="ipAddress">ip-адрес</param>
 		/// <param name="timerTickTime">Период опроса в мс</param>
-		public ModbusDevice(DeviceType deviceType, string ipAddress, int timerTickTime = 100)
+		public ModbusDevice(DeviceType deviceType, string ipAddress, int timerTickTime = 100, int sendSignalPauseInMs = 200)
 		{
 			IpAddress = ipAddress;
 			DeviceType = deviceType;
@@ -49,11 +49,16 @@ namespace GammaPrintService
 		/// </summary>
 		private Timer RestoreConnectTimer { get; set; }
 
-		/// <summary>
-		/// Процедура восстановления связи
-		/// </summary>
-		/// <param name="obj"></param>
-		private void RestoreConnect(object obj)
+        /// <summary>
+        /// Пауза в мс между сигналом true на печать и сменой на false
+        /// </summary>
+        private int sendSignalPauseInMs;
+
+        /// <summary>
+        /// Процедура восстановления связи
+        /// </summary>
+        /// <param name="obj"></param>
+        private void RestoreConnect(object obj)
 		{
 			if (!AdamModbus.Connected)
 			{
@@ -150,7 +155,7 @@ namespace GammaPrintService
 			foreach (var signal in outData)
 			{
 				AdamModbus.Modbus().ForceSingleCoil(iStart + signal.Key, signal.Value);
-				Thread.Sleep(200);
+				Thread.Sleep(sendSignalPauseInMs);
 				AdamModbus.Modbus().ForceSingleCoil(iStart + signal.Key, !signal.Value);
 			}
 		}

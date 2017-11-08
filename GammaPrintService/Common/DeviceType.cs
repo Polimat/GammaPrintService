@@ -1,4 +1,4 @@
-﻿namespace GammaService.Common
+﻿namespace GammaPrintService.Common
 {
     public enum DeviceType
     {

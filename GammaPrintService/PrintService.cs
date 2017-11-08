@@ -4,7 +4,7 @@ using System.IO;
 using System.Threading;
 using System.Xml.Serialization;
 using GammaPrintService.Common;
-using GammaService.Common;
+//using GammaService.Common;
 
 namespace GammaPrintService
 {
@@ -17,20 +17,34 @@ namespace GammaPrintService
 	    private string printerName;
 	    private string pdfPath;
 		/// <summary>
-		/// Номер входа на адаме для печати
+		/// Номер входа на адаме для печати (ГУ выдвинута на позицию)
 		/// </summary>
 	    private uint inputPrint;
-
-	    private uint inputApplicatorReady;
-
+        /// <summary>
+        /// Номер входа на адаме для сигнала о позиции вппликатора
+        /// </summary>
+        private uint inputApplicatorReady;
 		/// <summary>
 		/// Номер выхода сигнала печати
 		/// </summary>
 	    private uint outPrint;
 
-	    private bool printInputState;
-	    private bool applicatorReady;
-	    private bool labelReady;
+        ///// <summary>
+        ///// Период опроса адама в мс
+        ///// </summary>
+        //private uint modbusDeviceTickTimeInMs;
+        ///// <summary>
+        ///// Пауза в мс между сигналом true на печать и сменой на false
+        ///// </summary>
+        //private int sendSignalPauseInMs;
+        /// <summary>
+        /// Длина паузы после печати этикетки
+        /// </summary>
+        private int lengthPauseAfterPrintLabelInMs;
+
+        private bool printInputState = false;
+	    private bool applicatorReady = true;
+	    private bool labelReady = true;
 
 	    #endregion
 
@@ -66,7 +80,10 @@ namespace GammaPrintService
 			inputPrint = settings.InPortPrintSignal;
 			inputApplicatorReady = settings.PortApplicatorReady;
 			outPrint = settings.OutPortPrintSignal;
-			device = new ModbusDevice(DeviceType.ADAM6060, settings.AdamIpAddress);
+            //modbusDeviceTickTimeInMs = settings.ModbusDeviceTickTimeInMs;
+            //sendSignalPauseInMs = (int)settings.SendSignalPauseInMs;
+            lengthPauseAfterPrintLabelInMs = (int)settings.LengthPauseAfterPrintLabelInMs;
+            device = new ModbusDevice(DeviceType.ADAM6060, settings.AdamIpAddress, (int)settings.ModbusDeviceTickTimeInMs, (int)settings.SendSignalPauseInMs);
 			device.OnDIDataReceived += OnModbusInputDataReceived;
 		}
 
@@ -91,9 +108,12 @@ namespace GammaPrintService
 						}
 					};
 					device.SendSignal(outSignals);
-					labelReady = false;
+                    Console.WriteLine("Ярлык приклеен");
+                    Console.WriteLine("labelReady: false <-" + labelReady);
+                    labelReady = false;
 				}
-				printInputState = value;
+                Console.WriteLine("printInputState: " + value + "<-" + printInputState);
+                printInputState = value;
 			}
 	    }
 
@@ -110,15 +130,35 @@ namespace GammaPrintService
 			    {
 				    PrintLabel();
 			    }
-			    applicatorReady = value;
+                Console.WriteLine("applicatorReady: " + value + "<-" + applicatorReady);
+                applicatorReady = value;
 		    }
 	    }
 
-	    #endregion
+        #endregion
 
-		#region Private methods
+        #region Private methods
 
-		private void SaveSettings(Settings settings)
+        public void SendSignal(bool signal)
+        {
+            try
+            {
+                var outSignals = new Dictionary<int, bool>
+                    {
+                        {
+                            (int) outPrint, signal
+                        }
+                    };
+                device.SendSignal(outSignals);
+                Console.WriteLine("Выход "+ outPrint + " Состояние "+signal);
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("Не удалось отправить сигнал");
+            }
+        }
+
+        private void SaveSettings(Settings settings)
 	    {
 		    try
 		    {
@@ -134,29 +174,68 @@ namespace GammaPrintService
 		    }
 	    }
 
-	    private void PrintLabel()
+	    public void PrintLabel()
 	    {
 		    labelReady = false;
-		    if (!RawPrinterHelper.SendFileToPrinter(pdfPath, printerName))
-		    {
+            //if (!PrintImage.SendImageToPrinter(pdfPath, printerName))
+            if (!PdfPrint.PrintPdfDocument(pdfPath, printerName))
+            {
 			    Console.WriteLine("При печати произошла ошибка");
 				return;
 		    }
-			Thread.Sleep(3000);
+            else
+            {
+                Console.WriteLine("Печать произведена успешно");
+            }
+            Thread.Sleep(lengthPauseAfterPrintLabelInMs);
 		    labelReady = true;
 	    }
 
-		private void OnModbusInputDataReceived(bool[] diData) 
+        public void ChangeStatePrintSignal()
+        {
+            bool[] bDIData;
+            bDIData = new bool[6];
+            bDIData[inputPrint - 1] = PrintInputState;
+            bDIData[inputApplicatorReady - 1] = !ApplicatorReady;
+            OnModbusInputDataReceived(bDIData) ;
+        }
+
+        public void ChangeStateApplicatorReadySignal()
+        {
+            bool[] bDIData;
+            bDIData = new bool[6];
+            bDIData[inputPrint - 1] = !PrintInputState;
+            bDIData[inputApplicatorReady - 1] = ApplicatorReady;
+            OnModbusInputDataReceived(bDIData);
+        }
+
+        public void OnModbusInputDataReceived(bool[] diData) 
 	    {
 		    if (diData == null || diData.Length < Math.Max(inputPrint, inputApplicatorReady))
 		    {
 			    return;
 		    }
-		    PrintInputState = diData[inputPrint - 1];
-		    ApplicatorReady = diData[inputApplicatorReady - 1];
-	    }
+            Console.WriteLine((inputPrint-1).ToString()+": " + !diData[inputPrint - 1] + "  " + (inputApplicatorReady - 1).ToString() + ": " + !diData[inputApplicatorReady - 1] + "  "+ DateTime.Now);
+            //for (int i = 0; i <= 5; i++)
+            //{
+            //    Console.WriteLine(i + " " + diData[i].ToString() + " " + DateTime.Now);
+            //    using (StreamWriter sw = new StreamWriter(@"d:\cprojects\adam.txt", true, System.Text.Encoding.Default))
+            //    {
+            //        sw.WriteLine(i + " " + diData[i].ToString() + " "+DateTime.Now);
+            //        sw.Close();
+            //    }
+            //}
 
-		#endregion
+            //if (PrintInputState != !diData[inputPrint - 1] || ApplicatorReady != !diData[inputApplicatorReady - 1])
+            //{
+            //    Console.WriteLine("0: " + !diData[inputPrint - 1]+"<-"+ PrintInputState+"/"+ inputPrint);
+            //    Console.WriteLine("1: " + !diData[inputApplicatorReady - 1] + "<-" + ApplicatorReady+"/"+ inputApplicatorReady);
+            //}
+            PrintInputState = !diData[inputPrint - 1];
+            ApplicatorReady = !diData[inputApplicatorReady - 1];
+        }
 
-	}
+        #endregion
+
+    }
 }

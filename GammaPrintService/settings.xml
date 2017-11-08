@@ -1,9 +1,12 @@
 <?xml version="1.0"?>
 <Settings xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <PrinterName>ASUTP</PrinterName>
-  <PdfPath>d:\cprojects\Амбалаж.pdf</PdfPath>
-  <AdamIpAddress>127.0.0.1</AdamIpAddress>
-  <InPortPrintSignal>1</InPortPrintSignal>
-  <PortApplicatorReady>2</PortApplicatorReady>
-  <OutPortPrintSignal>1</OutPortPrintSignal>
+  <PrinterName>SinhroZebra</PrinterName>
+  <PdfPath>D:\GammaPrintService\GroupLabel.pdf</PdfPath>
+  <AdamIpAddress>192.168.95.102</AdamIpAddress>
+  <InPortPrintSignal>2</InPortPrintSignal>
+  <PortApplicatorReady>1</PortApplicatorReady>
+  <OutPortPrintSignal>6</OutPortPrintSignal>
+  <ModbusDeviceTickTimeInMs>100</ModbusDeviceTickTimeInMs>
+  <SendSignalPauseInMs>200</SendSignalPauseInMs>
+  <LengthPauseAfterPrintLabelInMs>2000</LengthPauseAfterPrintLabelInMs>
 </Settings>
